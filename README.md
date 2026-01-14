@@ -16,3 +16,16 @@ After installing the plugin, add a keybinding to your `keymap.toml` configuratio
 ```toml
 	{ on = [ "c", "t" ], run = "plugin symlink-target-path", desc = "Copy symlink target paths" },
 ```
+
+## Configuration
+
+For extra plugin configuration, you may add the following to `~/.config/yazi/init.lua`:
+
+```lua
+require("symlink-target-path"):setup {
+	-- Normalize paths by removing "." and ".." segments.
+	-- Set to false to keep the raw resolved path.
+	normalize = true,
+}
+```
+
