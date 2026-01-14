@@ -1,4 +1,7 @@
+--- symlink-target-path plugin for yazi
 --- @since 26.1.4
+--- @description Copies the resolved target path of symlinks
+
 
 -- Function to normalize file path
 local function normalize_path(path)
