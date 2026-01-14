@@ -58,7 +58,18 @@ local collect_paths = ya.sync(function(state)
 		end
 	end
 
+	local urls = {}
+	-- If files are selected, use them
 	for _, url in pairs(selected) do
+		urls[#urls + 1] = url
+	end
+	-- If no files are selected, use the hovered file
+	if #urls == 0 and current.hovered then
+		urls[1] = current.hovered.url
+	end
+
+	for i = 1, #urls do
+		local url = urls[i]
 		-- Local-only for now (skip archives, search results, and VFSs)
 		if url.is_archive or url.domain ~= nil then
 			goto continue
