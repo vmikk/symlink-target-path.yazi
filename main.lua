@@ -1,5 +1,41 @@
 --- @since 26.1.4
 
+-- Function to normalize file path
+local function normalize_path(path)
+	if not path or path == "" then
+		return path
+	end
+
+	local is_abs = path:sub(1, 1) == "/"
+	local parts = {}
+
+	for part in path:gmatch("[^/]+") do
+		if part == "." or part == "" then
+			-- skip
+		elseif part == ".." then
+			if #parts > 0 and parts[#parts] ~= ".." then
+				table.remove(parts)
+			elseif not is_abs then
+				table.insert(parts, "..")
+			end
+			-- Absolute paths clamp at root when ".." would go above it.
+		else
+			table.insert(parts, part)
+		end
+	end
+
+	local normalized = table.concat(parts, "/")
+	if is_abs then
+		normalized = "/" .. normalized
+	end
+
+	if normalized == "" then
+		return is_abs and "/" or "."
+	end
+
+	return normalized
+end
+
 local collect_paths = ya.sync(function()
 	local selected = cx.active.selected
 	local current = cx.active.current
@@ -48,8 +84,8 @@ local collect_paths = ya.sync(function()
 			target_path = file.url.path
 		end
 
-		-- TODO: Add path normalization in the future
-		table.insert(paths, tostring(target_path))
+		local normalized = normalize_path(tostring(target_path))
+		table.insert(paths, normalized)
 
 		::continue::
 	end
