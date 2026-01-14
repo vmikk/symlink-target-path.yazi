@@ -39,10 +39,11 @@ local function normalize_path(path)
 	return normalized
 end
 
-local collect_paths = ya.sync(function()
+local collect_paths = ya.sync(function(state)
 	local selected = cx.active.selected
 	local current = cx.active.current
 	local paths = {}
+	local normalize = state.normalize ~= false
 
 	if not current then
 		return paths
@@ -87,8 +88,11 @@ local collect_paths = ya.sync(function()
 			target_path = file.url.path
 		end
 
-		local normalized = normalize_path(tostring(target_path))
-		table.insert(paths, normalized)
+		local path_value = tostring(target_path)
+		if normalize then
+			path_value = normalize_path(path_value)
+		end
+		table.insert(paths, path_value)
 
 		::continue::
 	end
@@ -97,6 +101,14 @@ local collect_paths = ya.sync(function()
 end)
 
 return {
+	setup = function(state, opts)
+		opts = opts or {}
+		if opts.normalize == nil then
+			state.normalize = true
+		else
+			state.normalize = opts.normalize and true or false
+		end
+	end,
 	entry = function()
 		local paths = collect_paths()
 		if #paths > 0 then
