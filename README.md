@@ -26,6 +26,10 @@ require("symlink-target-path"):setup {
 	-- Normalize paths by removing "." and ".." segments.
 	-- Set to false to keep the raw resolved path.
 	normalize = true,
+
+	-- Skip broken symlinks (those whose targets do not exist).
+	-- Default is false.
+	skip_broken = false,
 }
 ```
 
