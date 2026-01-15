@@ -39,14 +39,19 @@ local function normalize_path(path)
 	return normalized
 end
 
-local collect_paths = ya.sync(function(state)
+local collect_entries = ya.sync(function(state)
 	local selected = cx.active.selected
 	local current = cx.active.current
-	local paths = {}
 	local normalize = state.normalize ~= false
+	local skip_broken = state.skip_broken == true
+	local entries = {}
 
 	if not current then
-		return paths
+		return {
+			normalize = normalize,
+			skip_broken = skip_broken,
+			entries = entries,
+		}
 	end
 
 	local files = current.files
@@ -83,6 +88,7 @@ local collect_paths = ya.sync(function(state)
 		-- Get the path to copy
 		local target_path
 		if file.link_to then
+
 			-- This is a symlink - get the target path
 			target_path = file.link_to
 
@@ -99,16 +105,24 @@ local collect_paths = ya.sync(function(state)
 			target_path = file.url.path
 		end
 
-		local path_value = tostring(target_path)
-		if normalize then
-			path_value = normalize_path(path_value)
+		local entry = {
+			path = tostring(target_path),
+			is_symlink = file.link_to ~= nil,
+			is_orphan = file.cha and file.cha.is_orphan or false,
+		}
+		if skip_broken and file.link_to then
+			entry.url = file.url
 		end
-		table.insert(paths, path_value)
+		entries[#entries + 1] = entry
 
 		::continue::
 	end
 
-	return paths
+	return {
+		normalize = normalize,
+		skip_broken = skip_broken,
+		entries = entries,
+	}
 end)
 
 return {
@@ -119,9 +133,36 @@ return {
 		else
 			state.normalize = opts.normalize and true or false
 		end
+		if opts.skip_broken == nil then
+			state.skip_broken = false
+		else
+			state.skip_broken = opts.skip_broken and true or false
+		end
 	end,
 	entry = function()
-		local paths = collect_paths()
+		local data = collect_entries()
+		local entries = data.entries
+		local paths = {}
+		for i = 1, #entries do
+			local entry = entries[i]
+			if data.skip_broken and entry.is_symlink and entry.url then
+				if entry.is_orphan == true then
+					goto continue
+				end
+				local _, err = fs.cha(entry.url, true)
+				if err then
+					goto continue
+				end
+			end
+
+			local path_value = entry.path
+			if data.normalize then
+				path_value = normalize_path(path_value)
+			end
+			paths[#paths + 1] = path_value
+			::continue::
+		end
+
 		if #paths > 0 then
 			ya.clipboard(table.concat(paths, "\n"))
 			return
