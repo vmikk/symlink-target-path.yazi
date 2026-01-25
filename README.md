@@ -1,5 +1,7 @@
 # symlink-target-path.yazi
-Plugin for yazi to copy target path of symlinked file
+
+A Yazi plugin that copies the resolved target path of symlinks.
+
 
 ## Installation
 
@@ -32,4 +34,10 @@ require("symlink-target-path"):setup {
 	skip_broken = false,
 }
 ```
+
+
+## Current limitations
+
+- **Virtual filesystems**: The plugin currently works only with local files. SFTP and other virtual filesystems are not supported yet  
+- **Relative path option**: Currently, the plugin always resolves relative paths to absolute. A future version could allow copying relative paths as-is  
 
