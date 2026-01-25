@@ -143,7 +143,7 @@ return {
 		local paths = {}
 		for i = 1, #entries do
 			local entry = entries[i]
-		if data.skip_broken and entry.is_symlink and entry.url then
+			if data.skip_broken and entry.is_symlink and entry.url then
 				if entry.is_orphan == true then
 					goto continue
 				end
@@ -153,31 +153,31 @@ return {
 				end
 			end
 
-		local target_path = entry.link_to
-		if not target_path and entry.url then
-			local cha = fs.cha(entry.url)
-			if cha and cha.is_link then
-				target_path = readlink_target(tostring(entry.url.path))
-			end
-		end
-
-		if target_path then
-			-- Resolve relative targets against the symlink's parent directory
-			-- TODO: Allow users to keep relative paths in the future
-			if not target_path.is_absolute then
-				local parent = entry.parent or (entry.url and entry.url.path.parent)
-				if parent then
-					target_path = parent:join(target_path)
+			local target_path = entry.link_to
+			if not target_path and entry.url then
+				local cha = fs.cha(entry.url)
+				if cha and cha.is_link then
+					target_path = readlink_target(tostring(entry.url.path))
 				end
 			end
-		else
-			target_path = entry.url and entry.url.path or nil
-		end
 
-		local path_value = target_path and tostring(target_path) or nil
-		if not path_value or path_value == "" then
-			goto continue
-		end
+			if target_path then
+				-- Resolve relative targets against the symlink's parent directory
+				-- TODO: Allow users to keep relative paths in the future
+				if not target_path.is_absolute then
+					local parent = entry.parent or (entry.url and entry.url.path.parent)
+					if parent then
+						target_path = parent:join(target_path)
+					end
+				end
+			else
+				target_path = entry.url and entry.url.path or nil
+			end
+
+			local path_value = target_path and tostring(target_path) or nil
+			if not path_value or path_value == "" then
+				goto continue
+			end
 			if data.normalize then
 				path_value = normalize_path(path_value)
 			end
