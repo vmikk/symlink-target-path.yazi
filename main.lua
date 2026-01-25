@@ -39,6 +39,25 @@ local function normalize_path(path)
 	return normalized
 end
 
+local function readlink_target(path)
+	if not path or path == "" then
+		return nil
+	end
+
+	local output = Command("readlink"):arg({ "--", path }):output()
+	if not output or not output.status or not output.status.success then
+		return nil
+	end
+
+	local raw = tostring(output.stdout or "")
+	raw = raw:gsub("[\r\n]+$", "")
+	if raw == "" then
+		return nil
+	end
+
+	return Path.os(raw)
+end
+
 local collect_entries = ya.sync(function(state)
 	local selected = cx.active.selected
 	local current = cx.active.current
@@ -85,34 +104,13 @@ local collect_entries = ya.sync(function(state)
 			goto continue
 		end
 
-		-- Get the path to copy
-		local target_path
-		if file.link_to then
-
-			-- This is a symlink - get the target path
-			target_path = file.link_to
-
-			-- Resolve relative targets against the symlink's parent directory
-			-- TODO: Allow users to keep relative paths in the future
-			if not target_path.is_absolute then
-				local parent = file.url.path.parent
-				if parent then
-					target_path = parent:join(target_path)
-				end
-			end
-		else
-			-- This is a regular file - just get the path
-			target_path = file.url.path
-		end
-
 		local entry = {
-			path = tostring(target_path),
+			url = file.url,
+			link_to = file.link_to,
+			parent = file.url.path.parent,
 			is_symlink = file.link_to ~= nil,
 			is_orphan = file.cha and file.cha.is_orphan or false,
 		}
-		if skip_broken and file.link_to then
-			entry.url = file.url
-		end
 		entries[#entries + 1] = entry
 
 		::continue::
@@ -145,7 +143,7 @@ return {
 		local paths = {}
 		for i = 1, #entries do
 			local entry = entries[i]
-			if data.skip_broken and entry.is_symlink and entry.url then
+		if data.skip_broken and entry.is_symlink and entry.url then
 				if entry.is_orphan == true then
 					goto continue
 				end
@@ -155,7 +153,31 @@ return {
 				end
 			end
 
-			local path_value = entry.path
+		local target_path = entry.link_to
+		if not target_path and entry.url then
+			local cha = fs.cha(entry.url)
+			if cha and cha.is_link then
+				target_path = readlink_target(tostring(entry.url.path))
+			end
+		end
+
+		if target_path then
+			-- Resolve relative targets against the symlink's parent directory
+			-- TODO: Allow users to keep relative paths in the future
+			if not target_path.is_absolute then
+				local parent = entry.parent or (entry.url and entry.url.path.parent)
+				if parent then
+					target_path = parent:join(target_path)
+				end
+			end
+		else
+			target_path = entry.url and entry.url.path or nil
+		end
+
+		local path_value = target_path and tostring(target_path) or nil
+		if not path_value or path_value == "" then
+			goto continue
+		end
 			if data.normalize then
 				path_value = normalize_path(path_value)
 			end
