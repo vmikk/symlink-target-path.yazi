@@ -1,6 +1,6 @@
 # symlink-target-path.yazi
 
-A Yazi plugin that copies the resolved target path of symlinks.
+A [Yazi](https://github.com/sxyazi/yazihttps://yazi-rs.github.io/) plugin that copies the resolved target path of symlinks.
 
 
 ## Installation
